@@ -14,6 +14,35 @@ const availabilitySchema = new mongoose.Schema(
   { _id: false }
 );
 
+const reviewSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    email: {
+      type: String,
+      required: true,
+      trim: true,
+      lowercase: true
+    },
+    score: {
+      type: Number,
+      required: true,
+      min: 1,
+      max: 5
+    },
+    comment: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 500
+    }
+  },
+  { timestamps: true }
+);
+
 const expertSchema = new mongoose.Schema(
   {
     name: {
@@ -42,9 +71,42 @@ const expertSchema = new mongoose.Schema(
       required: true,
       trim: true
     },
+    headline: {
+      type: String,
+      default: "",
+      trim: true
+    },
+    company: {
+      type: String,
+      default: "",
+      trim: true
+    },
     languages: {
       type: [String],
       default: []
+    },
+    tags: {
+      type: [String],
+      default: []
+    },
+    featured: {
+      type: Boolean,
+      default: false
+    },
+    sessionFormat: {
+      type: String,
+      default: "1:1 video session",
+      trim: true
+    },
+    responseTime: {
+      type: String,
+      default: "Replies within 24h",
+      trim: true
+    },
+    sessionsCompleted: {
+      type: Number,
+      default: 0,
+      min: 0
     },
     pricePerSession: {
       type: Number,
@@ -53,6 +115,10 @@ const expertSchema = new mongoose.Schema(
     },
     availability: {
       type: [availabilitySchema],
+      default: []
+    },
+    reviews: {
+      type: [reviewSchema],
       default: []
     }
   },

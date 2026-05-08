@@ -1,6 +1,14 @@
 import { Link } from "react-router-dom";
 
-export function SlotGroup({ expertId, availability, bookingMode = false, selected, onSelect }) {
+export function SlotGroup({
+  expertId,
+  availability,
+  bookingMode = false,
+  selected,
+  onSelect,
+  allowBookedSelection = false,
+  onBookedSelect
+}) {
   return (
     <div className="slot-groups">
       {availability.map((entry) => (
@@ -16,6 +24,19 @@ export function SlotGroup({ expertId, availability, bookingMode = false, selecte
                 selected?.date === entry.date && selected?.timeSlot === slot.time;
 
               if (bookingMode) {
+                if (slot.isBooked && allowBookedSelection) {
+                  return (
+                    <button
+                      key={`${entry.date}-${slot.time}`}
+                      type="button"
+                      className="slot-pill waitlist"
+                      onClick={() => onBookedSelect?.({ date: entry.date, timeSlot: slot.time })}
+                    >
+                      Join waitlist · {slot.time}
+                    </button>
+                  );
+                }
+
                 return (
                   <button
                     key={`${entry.date}-${slot.time}`}

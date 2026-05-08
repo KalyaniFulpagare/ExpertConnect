@@ -41,8 +41,24 @@ const bookingSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["Pending", "Confirmed", "Completed"],
+      enum: ["Pending", "Confirmed", "Completed", "Cancelled"],
       default: "Pending"
+    },
+    previousSlot: {
+      date: {
+        type: String,
+        default: ""
+      },
+      timeSlot: {
+        type: String,
+        default: ""
+      }
+    },
+    cancellationReason: {
+      type: String,
+      default: "",
+      trim: true,
+      maxlength: 240
     }
   },
   { timestamps: true }

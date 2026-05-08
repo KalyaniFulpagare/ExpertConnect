@@ -1,14 +1,26 @@
 import { useDeferredValue, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { api, getApiError } from "../api/client";
-import { Loader } from "../components/Loader";
 import { ErrorState } from "../components/ErrorState";
+import { ExpertCard } from "../components/ExpertCard";
+import { Loader } from "../components/Loader";
 import { Pagination } from "../components/Pagination";
+import { loadFavorites, loadRecentExperts, toggleFavoriteId } from "../utils/localState";
 
 export function ExpertsPage() {
   const [experts, setExperts] = useState([]);
-  const [meta, setMeta] = useState({ page: 1, totalPages: 1, categories: [] });
-  const [query, setQuery] = useState({ search: "", category: "", page: 1 });
+  const [meta, setMeta] = useState({ page: 1, totalPages: 1, categories: [], languages: [] });
+  const [query, setQuery] = useState({
+    search: "",
+    category: "",
+    language: "",
+    minRating: "",
+    maxPrice: "",
+    sortBy: "top-rated",
+    featured: false,
+    page: 1
+  });
+  const [favoriteIds, setFavoriteIds] = useState(loadFavorites);
+  const [recentExperts, setRecentExperts] = useState(loadRecentExperts);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [overview, setOverview] = useState(null);
@@ -24,7 +36,12 @@ export function ExpertsPage() {
           params: {
             page: query.page,
             search: deferredSearch,
-            category: query.category
+            category: query.category,
+            language: query.language,
+            minRating: query.minRating,
+            maxPrice: query.maxPrice,
+            sortBy: query.sortBy,
+            featured: query.featured
           }
         }),
         api.get("/bookings/overview/stats")
@@ -33,6 +50,7 @@ export function ExpertsPage() {
       setExperts(expertsResponse.data.data);
       setMeta(expertsResponse.data.meta);
       setOverview(overviewResponse.data);
+      setRecentExperts(loadRecentExperts());
     } catch (requestError) {
       setError(getApiError(requestError, "We could not load the expert directory."));
     } finally {
@@ -42,105 +60,229 @@ export function ExpertsPage() {
 
   useEffect(() => {
     fetchExperts();
-  }, [query.page, query.category, deferredSearch]);
+  }, [
+    query.page,
+    query.category,
+    query.language,
+    query.minRating,
+    query.maxPrice,
+    query.sortBy,
+    query.featured,
+    deferredSearch
+  ]);
+
+  const toggleFavorite = (expertId) => {
+    setFavoriteIds(toggleFavoriteId(expertId));
+  };
 
   return (
     <div className="page-stack">
-      <section className="hero-panel">
-        <div>
-          <p className="eyebrow">Ship-ready scheduling</p>
-          <h1>Find the right expert and book a live session without collisions.</h1>
+      <section className="atlas-panel atlas-hero">
+        <div className="atlas-hero-copy">
+          <p className="eyebrow">Expert orchestration layer</p>
+          <h1>Run expert sessions with Atlas-style visibility and zero booking collisions.</h1>
           <p className="hero-copy">
-            Search, filter, and book in real time. If another user grabs a slot, the UI updates
-            instantly.
+            Search across specialties, monitor live slot health, build a saved expert shortlist, and
+            use waitlist and reschedule flows that feel like a real product instead of a static form.
           </p>
+          <div className="atlas-inline-pills">
+            <span>Real-time slot sync</span>
+            <span>Waitlist recovery</span>
+            <span>Review-backed discovery</span>
+          </div>
         </div>
-        <div className="overview-grid">
-          <article className="overview-card">
+
+        <div className="hero-metrics-grid">
+          <article className="metric-card">
             <span>Total bookings</span>
             <strong>{overview?.totalBookings ?? 0}</strong>
           </article>
-          <article className="overview-card">
-            <span>Pending</span>
-            <strong>
-              {overview?.statusCounts?.find((item) => item._id === "Pending")?.count ?? 0}
-            </strong>
+          <article className="metric-card">
+            <span>Waitlist entries</span>
+            <strong>{overview?.waitlistCount ?? 0}</strong>
           </article>
-          <article className="overview-card">
-            <span>Confirmed</span>
-            <strong>
-              {overview?.statusCounts?.find((item) => item._id === "Confirmed")?.count ?? 0}
-            </strong>
+          <article className="metric-card">
+            <span>Featured experts</span>
+            <strong>{experts.filter((expert) => expert.featured).length}</strong>
+          </article>
+          <article className="metric-card">
+            <span>Saved experts</span>
+            <strong>{favoriteIds.length}</strong>
           </article>
         </div>
       </section>
 
-      <section className="toolbar card">
-        <label className="field-block">
-          <span>Search expert</span>
-          <input
-            type="search"
-            value={query.search}
-            onChange={(event) => setQuery((current) => ({ ...current, search: event.target.value, page: 1 }))}
-            placeholder="Search by name"
-          />
-        </label>
-
-        <label className="field-block">
-          <span>Category</span>
-          <select
-            value={query.category}
-            onChange={(event) => setQuery((current) => ({ ...current, category: event.target.value, page: 1 }))}
+      <section className="atlas-panel filter-panel">
+        <div className="section-header">
+          <div>
+            <p className="eyebrow">Filter graph</p>
+            <h2>Find the right advisor faster</h2>
+          </div>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() =>
+              setQuery({
+                search: "",
+                category: "",
+                language: "",
+                minRating: "",
+                maxPrice: "",
+                sortBy: "top-rated",
+                featured: false,
+                page: 1
+              })
+            }
           >
-            <option value="">All categories</option>
-            {meta.categories.map((category) => (
-              <option key={category} value={category}>
-                {category}
-              </option>
-            ))}
-          </select>
-        </label>
+            Reset filters
+          </button>
+        </div>
 
-        <button
-          type="button"
-          className="secondary-button"
-          onClick={() => setQuery({ search: "", category: "", page: 1 })}
-        >
-          Reset filters
-        </button>
+        <div className="atlas-filter-grid">
+          <label className="field-block">
+            <span>Search expert</span>
+            <input
+              type="search"
+              value={query.search}
+              onChange={(event) =>
+                setQuery((current) => ({ ...current, search: event.target.value, page: 1 }))
+              }
+              placeholder="Name, focus area, headline"
+            />
+          </label>
+
+          <label className="field-block">
+            <span>Category</span>
+            <select
+              value={query.category}
+              onChange={(event) =>
+                setQuery((current) => ({ ...current, category: event.target.value, page: 1 }))
+              }
+            >
+              <option value="">All categories</option>
+              {meta.categories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="field-block">
+            <span>Language</span>
+            <select
+              value={query.language}
+              onChange={(event) =>
+                setQuery((current) => ({ ...current, language: event.target.value, page: 1 }))
+              }
+            >
+              <option value="">Any language</option>
+              {meta.languages.map((language) => (
+                <option key={language} value={language}>
+                  {language}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="field-block">
+            <span>Minimum rating</span>
+            <select
+              value={query.minRating}
+              onChange={(event) =>
+                setQuery((current) => ({ ...current, minRating: event.target.value, page: 1 }))
+              }
+            >
+              <option value="">Any rating</option>
+              <option value="4">4.0+</option>
+              <option value="4.5">4.5+</option>
+              <option value="4.8">4.8+</option>
+            </select>
+          </label>
+
+          <label className="field-block">
+            <span>Maximum budget</span>
+            <select
+              value={query.maxPrice}
+              onChange={(event) =>
+                setQuery((current) => ({ ...current, maxPrice: event.target.value, page: 1 }))
+              }
+            >
+              <option value="">No limit</option>
+              <option value="2200">Rs. 2200</option>
+              <option value="2600">Rs. 2600</option>
+              <option value="3000">Rs. 3000</option>
+            </select>
+          </label>
+
+          <label className="field-block">
+            <span>Sort by</span>
+            <select
+              value={query.sortBy}
+              onChange={(event) =>
+                setQuery((current) => ({ ...current, sortBy: event.target.value, page: 1 }))
+              }
+            >
+              <option value="top-rated">Top rated</option>
+              <option value="price-low">Price: low to high</option>
+              <option value="price-high">Price: high to low</option>
+              <option value="experience">Experience</option>
+              <option value="newest">Newest</option>
+            </select>
+          </label>
+        </div>
+
+        <label className="toggle-row">
+          <input
+            type="checkbox"
+            checked={query.featured}
+            onChange={(event) =>
+              setQuery((current) => ({ ...current, featured: event.target.checked, page: 1 }))
+            }
+          />
+          <span>Show featured experts only</span>
+        </label>
       </section>
 
-      {loading ? <Loader label="Loading experts..." /> : null}
+      {recentExperts.length ? (
+        <section className="atlas-panel recent-panel">
+          <div className="section-header">
+            <div>
+              <p className="eyebrow">Recently viewed</p>
+              <h2>Jump back into your research queue</h2>
+            </div>
+          </div>
+          <div className="recent-grid">
+            {recentExperts.map((expert) => (
+              <div key={expert._id} className="recent-card">
+                <strong>{expert.name}</strong>
+                <span>{expert.category}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {loading ? <Loader label="Loading expert graph..." /> : null}
       {!loading && error ? <ErrorState message={error} onAction={fetchExperts} /> : null}
 
       {!loading && !error ? (
         <>
           <section className="expert-grid">
             {experts.map((expert) => (
-              <article key={expert._id} className="expert-card">
-                <div className="expert-card-top">
-                  <div>
-                    <p className="category-chip">{expert.category}</p>
-                    <h2>{expert.name}</h2>
-                  </div>
-                  <div className="rating-pill">{expert.rating.toFixed(1)} / 5</div>
-                </div>
-                <p className="expert-meta">{expert.experience}+ years experience</p>
-                <p className="expert-copy">{expert.bio}</p>
-                <div className="expert-footer">
-                  <span>From Rs. {expert.pricePerSession}</span>
-                  <Link className="primary-link" to={`/experts/${expert._id}`}>
-                    View details
-                  </Link>
-                </div>
-              </article>
+              <ExpertCard
+                key={expert._id}
+                expert={expert}
+                isFavorite={favoriteIds.includes(expert._id)}
+                onToggleFavorite={toggleFavorite}
+              />
             ))}
           </section>
 
           {experts.length === 0 ? (
             <div className="state-card">
-              <h3>No experts matched this search.</h3>
-              <p>Try a different name or remove the category filter.</p>
+              <h3>No experts matched this filter graph.</h3>
+              <p>Try widening the budget or removing one of the specialty filters.</p>
             </div>
           ) : null}
 
