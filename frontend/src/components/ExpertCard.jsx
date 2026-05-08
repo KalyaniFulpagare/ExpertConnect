@@ -1,6 +1,9 @@
 import { Link } from "react-router-dom";
+import { useI18n } from "../i18n/I18nContext";
 
 export function ExpertCard({ expert, isFavorite, onToggleFavorite }) {
+  const { t } = useI18n();
+
   return (
     <article className="expert-card">
       <div className="expert-card-top">
@@ -13,9 +16,9 @@ export function ExpertCard({ expert, isFavorite, onToggleFavorite }) {
           type="button"
           className={isFavorite ? "favorite-button active" : "favorite-button"}
           onClick={() => onToggleFavorite(expert._id)}
-          aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+          aria-label={isFavorite ? t("savedToFavorites") : t("saveExpert")}
         >
-          {isFavorite ? "Saved" : "Save"}
+          {isFavorite ? t("saved") : t("saveExpert")}
         </button>
       </div>
 
@@ -39,7 +42,7 @@ export function ExpertCard({ expert, isFavorite, onToggleFavorite }) {
           <span>{expert.nextAvailable}</span>
         </div>
         <Link className="primary-link" to={`/experts/${expert._id}`}>
-          View profile
+          {t("availability")}
         </Link>
       </div>
     </article>

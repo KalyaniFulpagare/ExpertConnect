@@ -148,7 +148,8 @@ export const getExpertById = async (req, res) => {
   const availabilityDates = expert.availability.map((entry) => entry.date);
   const bookings = await Booking.find({
     expert: expert._id,
-    date: { $in: availabilityDates }
+    date: { $in: availabilityDates },
+    status: { $ne: "Cancelled" }
   }).lean();
 
   const bookedSlots = new Set(bookings.map((item) => `${item.date}__${item.timeSlot}`));

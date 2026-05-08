@@ -15,22 +15,12 @@ const issueAuthResponse = (res, statusCode, user, message) => {
 };
 
 export const signup = async (req, res) => {
-  const name = String(req.body.name || "").trim();
   const email = String(req.body.email || "").trim().toLowerCase();
-  const phone = String(req.body.phone || "").trim();
   const password = String(req.body.password || "");
   const errors = [];
 
-  if (name.length < 2) {
-    errors.push("Name must be at least 2 characters long.");
-  }
-
   if (!emailPattern.test(email)) {
     errors.push("A valid email address is required.");
-  }
-
-  if (phone && !phonePattern.test(phone)) {
-    errors.push("A valid phone number is required.");
   }
 
   if (password.length < 6) {
@@ -49,9 +39,10 @@ export const signup = async (req, res) => {
 
   const { salt, passwordHash } = hashPassword(password);
   const user = await User.create({
-    name,
     email,
-    phone,
+    name: "",
+    phone: "",
+    profileCompleted: false,
     passwordSalt: salt,
     passwordHash
   });
@@ -85,6 +76,9 @@ export const getCurrentUser = async (req, res) => {
 export const updateCurrentUser = async (req, res) => {
   const name = String(req.body.name ?? req.user.name).trim();
   const phone = String(req.body.phone ?? req.user.phone ?? "").trim();
+  const preferredLanguage = String(
+    req.body.preferredLanguage ?? req.user.preferredLanguage ?? "en"
+  ).trim();
   const errors = [];
 
   if (name.length < 2) {
@@ -95,12 +89,18 @@ export const updateCurrentUser = async (req, res) => {
     errors.push("A valid phone number is required.");
   }
 
+  if (!preferredLanguage) {
+    errors.push("A preferred language is required.");
+  }
+
   if (errors.length) {
     throw new ApiError(StatusCodes.BAD_REQUEST, "Validation failed.", errors);
   }
 
   req.user.name = name;
   req.user.phone = phone;
+  req.user.preferredLanguage = preferredLanguage;
+  req.user.profileCompleted = Boolean(name && phone);
   await req.user.save();
 
   res.status(StatusCodes.OK).json({

@@ -3,9 +3,11 @@ import { api, getApiError } from "../api/client";
 import { ExpertCard } from "../components/ExpertCard";
 import { ErrorState } from "../components/ErrorState";
 import { Loader } from "../components/Loader";
+import { useI18n } from "../i18n/I18nContext";
 import { loadFavorites, toggleFavoriteId } from "../utils/localState";
 
 export function FavoritesPage() {
+  const { t } = useI18n();
   const [experts, setExperts] = useState([]);
   const [favoriteIds, setFavoriteIds] = useState(loadFavorites);
   const [loading, setLoading] = useState(true);
@@ -46,12 +48,9 @@ export function FavoritesPage() {
     <div className="page-stack">
       <section className="surface-panel header-panel">
         <div>
-          <p className="eyebrow">Saved experts</p>
-          <h1>Your short list</h1>
-          <p className="hero-copy">
-            Keep your best options in one place, compare them quickly, and jump into booking when
-            you are ready.
-          </p>
+          <p className="eyebrow">{t("saved")}</p>
+          <h1>{t("savedTitle")}</h1>
+          <p className="hero-copy">{t("savedSubtitle")}</p>
         </div>
       </section>
 
@@ -68,8 +67,8 @@ export function FavoritesPage() {
 
       {!experts.length ? (
         <div className="state-card">
-          <h3>No favorites yet.</h3>
-          <p>Save experts from the directory to build a shortlist.</p>
+          <h3>{t("noFavoritesTitle")}</h3>
+          <p>{t("noFavoritesSubtitle")}</p>
         </div>
       ) : null}
     </div>

@@ -34,3 +34,12 @@ export const requireAuth = async (req, res, next) => {
     next(error);
   }
 };
+
+export const requireAdmin = (req, res, next) => {
+  if (req.user?.role !== "admin") {
+    next(new ApiError(StatusCodes.FORBIDDEN, "You are not allowed to modify expert data."));
+    return;
+  }
+
+  next();
+};

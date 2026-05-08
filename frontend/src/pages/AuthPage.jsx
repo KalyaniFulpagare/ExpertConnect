@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { getApiError } from "../api/client";
+import { useI18n } from "../i18n/I18nContext";
 
 const emptyLoginForm = {
   email: "",
@@ -9,9 +10,7 @@ const emptyLoginForm = {
 };
 
 const emptySignupForm = {
-  name: "",
   email: "",
-  phone: "",
   password: "",
   confirmPassword: ""
 };
@@ -20,6 +19,7 @@ export function AuthPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated, login, signup } = useAuth();
+  const { t } = useI18n();
   const [mode, setMode] = useState("login");
   const [loginForm, setLoginForm] = useState(emptyLoginForm);
   const [signupForm, setSignupForm] = useState(emptySignupForm);
@@ -59,12 +59,10 @@ export function AuthPage() {
       setSubmitting(true);
       setError("");
       await signup({
-        name: signupForm.name,
         email: signupForm.email,
-        phone: signupForm.phone,
         password: signupForm.password
       });
-      navigate(redirectTo, { replace: true });
+      navigate("/profile-setup", { replace: true });
     } catch (requestError) {
       setError(getApiError(requestError, "Sign up failed. Please try again."));
     } finally {
@@ -78,10 +76,8 @@ export function AuthPage() {
         <div className="section-header">
           <div>
             <p className="eyebrow">Account access</p>
-            <h1>{mode === "login" ? "Welcome back" : "Create your account"}</h1>
-            <p className="hero-copy">
-              Sign in to save experts, book sessions, and manage your schedule in one place.
-            </p>
+            <h1>{mode === "login" ? t("authWelcome") : t("authCreate")}</h1>
+            <p className="hero-copy">{t("authSubtitle")}</p>
           </div>
         </div>
 
@@ -94,7 +90,7 @@ export function AuthPage() {
               setError("");
             }}
           >
-            Login
+            {t("login")}
           </button>
           <button
             type="button"
@@ -104,7 +100,7 @@ export function AuthPage() {
               setError("");
             }}
           >
-            Sign up
+            {t("signup")}
           </button>
         </div>
 
@@ -113,7 +109,7 @@ export function AuthPage() {
         {mode === "login" ? (
           <form className="auth-form" onSubmit={handleLogin}>
             <label className="field-block">
-              <span>Email</span>
+              <span>{t("email")}</span>
               <input
                 type="email"
                 value={loginForm.email}
@@ -125,37 +121,25 @@ export function AuthPage() {
             </label>
 
             <label className="field-block">
-              <span>Password</span>
+              <span>{t("password")}</span>
               <input
                 type="password"
                 value={loginForm.password}
                 onChange={(event) =>
                   setLoginForm((current) => ({ ...current, password: event.target.value }))
                 }
-                placeholder="Enter your password"
+                placeholder={t("password")}
               />
             </label>
 
             <button type="submit" className="primary-button" disabled={submitting}>
-              {submitting ? "Signing in..." : "Login"}
+              {submitting ? t("signingIn") : t("signInAction")}
             </button>
           </form>
         ) : (
           <form className="auth-form" onSubmit={handleSignup}>
             <label className="field-block">
-              <span>Full name</span>
-              <input
-                type="text"
-                value={signupForm.name}
-                onChange={(event) =>
-                  setSignupForm((current) => ({ ...current, name: event.target.value }))
-                }
-                placeholder="Your full name"
-              />
-            </label>
-
-            <label className="field-block">
-              <span>Email</span>
+              <span>{t("email")}</span>
               <input
                 type="email"
                 value={signupForm.email}
@@ -167,43 +151,31 @@ export function AuthPage() {
             </label>
 
             <label className="field-block">
-              <span>Phone</span>
-              <input
-                type="tel"
-                value={signupForm.phone}
-                onChange={(event) =>
-                  setSignupForm((current) => ({ ...current, phone: event.target.value }))
-                }
-                placeholder="+91 98765 43210"
-              />
-            </label>
-
-            <label className="field-block">
-              <span>Password</span>
+              <span>{t("password")}</span>
               <input
                 type="password"
                 value={signupForm.password}
                 onChange={(event) =>
                   setSignupForm((current) => ({ ...current, password: event.target.value }))
                 }
-                placeholder="Minimum 6 characters"
+                placeholder={t("password")}
               />
             </label>
 
             <label className="field-block">
-              <span>Confirm password</span>
+              <span>{t("confirmPassword")}</span>
               <input
                 type="password"
                 value={signupForm.confirmPassword}
                 onChange={(event) =>
                   setSignupForm((current) => ({ ...current, confirmPassword: event.target.value }))
                 }
-                placeholder="Re-enter your password"
+                placeholder={t("confirmPassword")}
               />
             </label>
 
             <button type="submit" className="primary-button" disabled={submitting}>
-              {submitting ? "Creating account..." : "Sign up"}
+              {submitting ? t("creatingAccount") : t("signUpAction")}
             </button>
           </form>
         )}

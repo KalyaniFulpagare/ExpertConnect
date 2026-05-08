@@ -4,7 +4,7 @@ import { Loader } from "./Loader";
 
 export function ProtectedRoute({ children }) {
   const location = useLocation();
-  const { isAuthenticated, loading } = useAuth();
+  const { currentUser, isAuthenticated, loading } = useAuth();
 
   if (loading) {
     return <Loader label="Checking your session..." />;
@@ -13,6 +13,10 @@ export function ProtectedRoute({ children }) {
   if (!isAuthenticated) {
     const redirectTo = `${location.pathname}${location.search}`;
     return <Navigate to="/auth" replace state={{ from: redirectTo }} />;
+  }
+
+  if (!currentUser?.profileCompleted && location.pathname !== "/profile-setup") {
+    return <Navigate to="/profile-setup" replace />;
   }
 
   return children;

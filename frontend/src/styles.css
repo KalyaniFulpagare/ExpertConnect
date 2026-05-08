@@ -127,6 +127,17 @@ button {
   font-size: 0.86rem;
 }
 
+.language-picker {
+  display: grid;
+  gap: 6px;
+  min-width: 160px;
+}
+
+.language-picker span {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
 .nav-link,
 .tab-button,
 .secondary-button,
@@ -697,6 +708,11 @@ textarea {
   margin: 0 auto;
 }
 
+.profile-shell {
+  width: min(980px, 100%);
+  margin: 0 auto;
+}
+
 .auth-panel {
   display: grid;
   gap: 20px;
@@ -705,6 +721,36 @@ textarea {
 .auth-form {
   display: grid;
   gap: 16px;
+}
+
+.progress-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.badge-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.badge-card {
+  border-radius: 18px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+  display: grid;
+  gap: 8px;
+}
+
+.badge-card-earned {
+  border-color: rgba(180, 124, 255, 0.35);
+  background: rgba(180, 124, 255, 0.14);
+}
+
+.badge-card span {
+  color: var(--muted);
+  font-size: 0.88rem;
 }
 
 .ops-grid {

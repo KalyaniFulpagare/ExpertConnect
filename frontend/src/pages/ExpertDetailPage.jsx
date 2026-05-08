@@ -5,6 +5,7 @@ import { ErrorState } from "../components/ErrorState";
 import { ExpertCard } from "../components/ExpertCard";
 import { Loader } from "../components/Loader";
 import { ReviewStars } from "../components/ReviewStars";
+import { useI18n } from "../i18n/I18nContext";
 import { SlotGroup } from "../components/SlotGroup";
 import { socket } from "../lib/socket";
 import { loadFavorites, pushRecentExpert, toggleFavoriteId } from "../utils/localState";
@@ -30,6 +31,7 @@ const applySlotState = (current, date, timeSlot, isBooked) => {
 };
 
 export function ExpertDetailPage() {
+  const { t } = useI18n();
   const { expertId } = useParams();
   const [expert, setExpert] = useState(null);
   const [recommendations, setRecommendations] = useState([]);
@@ -122,14 +124,14 @@ export function ExpertDetailPage() {
           </div>
           <div className="detail-action-row">
             <Link className="primary-link" to={`/experts/${expert._id}/book`}>
-              Book a session
+              {t("bookSession")}
             </Link>
             <button
               type="button"
               className={favoriteIds.includes(expert._id) ? "secondary-button active-soft" : "secondary-button"}
               onClick={() => toggleFavorite(expert._id)}
             >
-              {favoriteIds.includes(expert._id) ? "Saved to favorites" : "Save expert"}
+              {favoriteIds.includes(expert._id) ? t("savedToFavorites") : t("saveExpert")}
             </button>
           </div>
         </div>
@@ -155,7 +157,7 @@ export function ExpertDetailPage() {
       <section className="surface-panel">
         <div className="section-header">
           <div>
-            <p className="eyebrow">Availability</p>
+            <p className="eyebrow">{t("availability")}</p>
             <h2>Live slots by date</h2>
           </div>
           <span className="helper-label">Booked slots can be waitlisted from the booking page.</span>
@@ -167,7 +169,7 @@ export function ExpertDetailPage() {
         <div className="surface-panel">
           <div className="section-header">
             <div>
-              <p className="eyebrow">Reviews</p>
+              <p className="eyebrow">{t("reviews")}</p>
               <h2>What people say after sessions</h2>
             </div>
           </div>
@@ -193,7 +195,7 @@ export function ExpertDetailPage() {
         <div className="surface-panel">
           <div className="section-header">
             <div>
-              <p className="eyebrow">Recommended experts</p>
+              <p className="eyebrow">{t("recommendedExperts")}</p>
               <h2>Similar expertise nearby</h2>
             </div>
           </div>

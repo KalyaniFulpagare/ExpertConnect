@@ -4,6 +4,7 @@ import { api, getApiError } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { ErrorState } from "../components/ErrorState";
 import { Loader } from "../components/Loader";
+import { useI18n } from "../i18n/I18nContext";
 import { SlotGroup } from "../components/SlotGroup";
 import { socket } from "../lib/socket";
 
@@ -42,6 +43,7 @@ export function BookingPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { currentUser, updateProfile } = useAuth();
+  const { t } = useI18n();
   const [expert, setExpert] = useState(null);
   const [form, setForm] = useState(initialForm);
   const [selectedSlot, setSelectedSlot] = useState({
@@ -148,7 +150,7 @@ export function BookingPage() {
         phone: form.phone.trim()
       });
 
-      await api.post("/bookings", {
+      const response = await api.post("/bookings", {
         expertId,
         name: form.name.trim(),
         phone: form.phone.trim(),
@@ -157,7 +159,7 @@ export function BookingPage() {
         notes: form.notes.trim()
       });
 
-      setSuccess("Your session is booked. You can track updates from My Sessions.");
+      setSuccess(response.data.message || "Your session is booked. You can track updates from My Sessions.");
       setForm((current) => ({ ...current, notes: "" }));
       setSelectedSlot({ date: "", timeSlot: "" });
       setWaitlistSlot(null);
@@ -190,7 +192,7 @@ export function BookingPage() {
         phone: form.phone.trim()
       });
 
-      await api.post("/bookings/waitlist", {
+      const response = await api.post("/bookings/waitlist", {
         expertId,
         name: form.name.trim(),
         date: waitlistSlot.date,
@@ -198,7 +200,10 @@ export function BookingPage() {
         notes: form.notes.trim()
       });
 
-      setSuccess(`You are on the waitlist for ${waitlistSlot.date} at ${waitlistSlot.timeSlot}.`);
+      setSuccess(
+        response.data.message ||
+          `You are on the waitlist for ${waitlistSlot.date} at ${waitlistSlot.timeSlot}.`
+      );
       setWaitlistSlot(null);
     } catch (requestError) {
       setError(getApiError(requestError, "Waitlist sign-up failed. Please try again."));
@@ -218,7 +223,7 @@ export function BookingPage() {
   return (
     <div className="page-stack booking-layout">
       <section className="surface-panel">
-        <p className="eyebrow">Book a session</p>
+        <p className="eyebrow">{t("bookSession")}</p>
         <h1>Reserve time with {expert.name}</h1>
         <p className="hero-copy">
           Pick an open slot or join the waitlist for a booked one. Your account details stay ready
@@ -256,7 +261,7 @@ export function BookingPage() {
 
         <form className="booking-form" onSubmit={handleSubmit}>
           <label className="field-block">
-            <span>Name</span>
+            <span>{t("fullName")}</span>
             <input
               type="text"
               value={form.name}
@@ -266,7 +271,7 @@ export function BookingPage() {
           </label>
 
           <label className="field-block">
-            <span>Email</span>
+            <span>{t("email")}</span>
             <input
               type="email"
               value={currentUser?.email || form.email}
@@ -275,7 +280,7 @@ export function BookingPage() {
           </label>
 
           <label className="field-block">
-            <span>Phone</span>
+            <span>{t("phone")}</span>
             <input
               type="tel"
               value={form.phone}
@@ -330,7 +335,7 @@ export function BookingPage() {
               disabled={submitting}
               onClick={handleJoinWaitlist}
             >
-              Join waitlist
+              {t("waitlist")}
             </button>
             <Link className="secondary-link" to={`/experts/${expertId}`}>
               Back to expert

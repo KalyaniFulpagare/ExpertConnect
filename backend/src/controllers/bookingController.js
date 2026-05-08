@@ -38,6 +38,7 @@ const normalizeWaitlistEntry = (entry) => ({
   timeSlot: entry.timeSlot,
   notes: entry.notes,
   status: entry.status,
+  queuePosition: entry.queuePosition ?? null,
   createdAt: entry.createdAt
 });
 
@@ -65,22 +66,61 @@ const ensureExpertHasSlot = (expert, date, timeSlot) => {
   }
 };
 
+const getActiveSlotBooking = (expertId, date, timeSlot, excludeBookingId = "") =>
+  Booking.findOne({
+    expert: expertId,
+    date,
+    timeSlot,
+    status: { $ne: "Cancelled" },
+    ...(excludeBookingId ? { _id: { $ne: excludeBookingId } } : {})
+  });
+
+const getQueuePosition = async (expertId, date, timeSlot, createdAt) => {
+  const earlierEntries = await WaitlistEntry.countDocuments({
+    expert: expertId,
+    date,
+    timeSlot,
+    status: "Waiting",
+    createdAt: { $lt: createdAt }
+  });
+
+  return earlierEntries + 1;
+};
+
+const attachQueuePositions = async (entries) =>
+  Promise.all(
+    entries.map(async (entry) => ({
+      ...entry,
+      queuePosition:
+        entry.status === "Waiting"
+          ? await getQueuePosition(entry.expert?._id || entry.expert, entry.date, entry.timeSlot, entry.createdAt)
+          : entry.status === "Notified"
+            ? 1
+            : null
+    }))
+  );
+
 const notifyWaitlistForSlot = async (io, expertId, date, timeSlot) => {
-  const matchingEntries = await WaitlistEntry.find({
+  const nextEntry = await WaitlistEntry.findOne({
     expert: expertId,
     date,
     timeSlot,
     status: "Waiting"
-  });
+  }).sort({ createdAt: 1 });
 
-  for (const entry of matchingEntries) {
-    entry.status = "Notified";
-    await entry.save();
-
-    io.to(`bookings:${entry.email}`).emit("waitlist:slot-opened", {
-      waitlistEntry: normalizeWaitlistEntry(entry)
-    });
+  if (!nextEntry) {
+    return;
   }
+
+  nextEntry.status = "Notified";
+  await nextEntry.save();
+
+  io.to(`bookings:${nextEntry.email}`).emit("waitlist:slot-opened", {
+    waitlistEntry: normalizeWaitlistEntry({
+      ...nextEntry.toObject(),
+      queuePosition: 1
+    })
+  });
 };
 
 const validateBookingPayload = ({ expertId, name, email, phone, date, timeSlot, notes }) => {
@@ -146,6 +186,15 @@ export const createBooking = async (req, res) => {
   }
 
   ensureExpertHasSlot(expert, date, timeSlot);
+
+  const existingSlotBooking = await getActiveSlotBooking(expertId, date, timeSlot);
+
+  if (existingSlotBooking) {
+    throw new ApiError(
+      StatusCodes.CONFLICT,
+      "That time slot was just booked. Please choose another one."
+    );
+  }
 
   const booking = await Booking.create({
     expert: expertId,
@@ -355,6 +404,20 @@ export const rescheduleBooking = async (req, res) => {
   const previousDate = booking.date;
   const previousTimeSlot = booking.timeSlot;
 
+  const targetSlotBooking = await getActiveSlotBooking(
+    booking.expert._id,
+    String(date).trim(),
+    String(timeSlot).trim(),
+    booking._id
+  );
+
+  if (targetSlotBooking) {
+    throw new ApiError(
+      StatusCodes.CONFLICT,
+      "That new slot is no longer available. Please pick another time."
+    );
+  }
+
   booking.previousSlot = {
     date: previousDate,
     timeSlot: previousTimeSlot
@@ -427,6 +490,40 @@ export const joinWaitlist = async (req, res) => {
 
   ensureExpertHasSlot(expert, date, timeSlot);
 
+  const activeBooking = await getActiveSlotBooking(expertId, date, timeSlot);
+
+  if (!activeBooking) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      "This slot is still open, so you can book it directly instead of joining the waitlist."
+    );
+  }
+
+  const existingEntry = await WaitlistEntry.findOne({
+    expert: expertId,
+    email,
+    date,
+    timeSlot
+  }).populate("expert", "name");
+
+  if (existingEntry) {
+    const queuePosition =
+      existingEntry.status === "Waiting"
+        ? await getQueuePosition(expertId, date, timeSlot, existingEntry.createdAt)
+        : existingEntry.status === "Notified"
+          ? 1
+          : null;
+
+    res.status(StatusCodes.OK).json({
+      message: "You are already on the waitlist for this slot.",
+      waitlistEntry: normalizeWaitlistEntry({
+        ...existingEntry.toObject(),
+        queuePosition
+      })
+    });
+    return;
+  }
+
   const entry = await WaitlistEntry.create({
     expert: expertId,
     name,
@@ -442,10 +539,14 @@ export const joinWaitlist = async (req, res) => {
   }
 
   const populatedEntry = await WaitlistEntry.findById(entry._id).populate("expert", "name");
+  const queuePosition = await getQueuePosition(expertId, date, timeSlot, entry.createdAt);
 
   res.status(StatusCodes.CREATED).json({
-    message: "Added to waitlist successfully.",
-    waitlistEntry: normalizeWaitlistEntry(populatedEntry)
+    message: `Added to waitlist successfully. Your current position is ${queuePosition}.`,
+    waitlistEntry: normalizeWaitlistEntry({
+      ...populatedEntry.toObject(),
+      queuePosition
+    })
   });
 };
 
@@ -457,7 +558,9 @@ export const getWaitlistByEmail = async (req, res) => {
     .sort({ createdAt: -1 })
     .lean();
 
+  const entriesWithQueue = await attachQueuePositions(entries);
+
   res.status(StatusCodes.OK).json({
-    data: entries.map(normalizeWaitlistEntry)
+    data: entriesWithQueue.map(normalizeWaitlistEntry)
   });
 };

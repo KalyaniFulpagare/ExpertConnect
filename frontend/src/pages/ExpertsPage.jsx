@@ -1,12 +1,18 @@
 import { useDeferredValue, useEffect, useState } from "react";
 import { api, getApiError } from "../api/client";
+import { useAuth } from "../auth/AuthContext";
 import { ErrorState } from "../components/ErrorState";
 import { ExpertCard } from "../components/ExpertCard";
+import { GamificationPanel } from "../components/GamificationPanel";
 import { Loader } from "../components/Loader";
 import { Pagination } from "../components/Pagination";
+import { useI18n } from "../i18n/I18nContext";
 import { loadFavorites, loadRecentExperts, toggleFavoriteId } from "../utils/localState";
+import { buildJourney } from "../utils/gamification";
 
 export function ExpertsPage() {
+  const { currentUser } = useAuth();
+  const { t } = useI18n();
   const [experts, setExperts] = useState([]);
   const [meta, setMeta] = useState({ page: 1, totalPages: 1, categories: [], languages: [] });
   const [query, setQuery] = useState({
@@ -24,6 +30,8 @@ export function ExpertsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [overview, setOverview] = useState(null);
+  const [myBookings, setMyBookings] = useState([]);
+  const [myWaitlist, setMyWaitlist] = useState([]);
   const deferredSearch = useDeferredValue(query.search);
 
   const fetchExperts = async () => {
@@ -31,7 +39,7 @@ export function ExpertsPage() {
       setLoading(true);
       setError("");
 
-      const [expertsResponse, overviewResponse] = await Promise.all([
+      const [expertsResponse, overviewResponse, bookingsResponse, waitlistResponse] = await Promise.all([
         api.get("/experts", {
           params: {
             page: query.page,
@@ -44,12 +52,16 @@ export function ExpertsPage() {
             featured: query.featured
           }
         }),
-        api.get("/bookings/overview/stats")
+        api.get("/bookings/overview/stats"),
+        api.get("/bookings"),
+        api.get("/bookings/waitlist")
       ]);
 
       setExperts(expertsResponse.data.data);
       setMeta(expertsResponse.data.meta);
       setOverview(overviewResponse.data);
+      setMyBookings(bookingsResponse.data.data);
+      setMyWaitlist(waitlistResponse.data.data);
       setRecentExperts(loadRecentExperts());
     } catch (requestError) {
       setError(getApiError(requestError, "We could not load the expert directory."));
@@ -75,42 +87,50 @@ export function ExpertsPage() {
     setFavoriteIds(toggleFavoriteId(expertId));
   };
 
+  const journey = buildJourney({
+    profileCompleted: currentUser?.profileCompleted,
+    favoritesCount: favoriteIds.length,
+    recentCount: recentExperts.length,
+    bookingsCount: myBookings.length,
+    waitlistCount: myWaitlist.length,
+    reviewsCount: myBookings.filter((booking) => booking.status === "Completed").length
+  });
+
   return (
     <div className="page-stack">
       <section className="surface-panel hero-panel">
         <div className="hero-panel-copy">
-          <p className="eyebrow">Expert marketplace</p>
-          <h1>Book the right expert without the usual back-and-forth.</h1>
-          <p className="hero-copy">
-            Browse specialties, compare reviews, save strong options, and book open slots in a few
-            steps. If a slot is taken, you can still join the waitlist and track everything later.
-          </p>
+          <p className="eyebrow">{t("experts")}</p>
+          <h1>{t("heroTitle")}</h1>
+          <p className="hero-copy">{t("heroSubtitle")}</p>
           <div className="highlight-pills">
-            <span>Live availability</span>
-            <span>Waitlist support</span>
-            <span>Verified reviews</span>
+            <span>{t("liveAvailability")}</span>
+            <span>{t("waitlistSupport")}</span>
+            <span>{t("verifiedReviews")}</span>
           </div>
         </div>
 
         <div className="hero-metrics-grid">
           <article className="metric-card">
-            <span>Total bookings</span>
+            <span>{t("totalBookings")}</span>
             <strong>{overview?.totalBookings ?? 0}</strong>
           </article>
           <article className="metric-card">
-            <span>Waitlist entries</span>
+            <span>{t("waitlistEntries")}</span>
             <strong>{overview?.waitlistCount ?? 0}</strong>
           </article>
           <article className="metric-card">
-            <span>Featured experts</span>
+            <span>{t("featuredExperts")}</span>
             <strong>{experts.filter((expert) => expert.featured).length}</strong>
           </article>
           <article className="metric-card">
-            <span>Saved experts</span>
+            <span>{t("savedExperts")}</span>
             <strong>{favoriteIds.length}</strong>
           </article>
         </div>
       </section>
+
+      <GamificationPanel journey={journey} />
 
       <section className="surface-panel filter-panel">
         <div className="section-header">

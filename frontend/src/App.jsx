@@ -1,64 +1,81 @@
 import { NavLink, Route, Routes } from "react-router-dom";
 import { useAuth } from "./auth/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { useI18n } from "./i18n/I18nContext";
 import { AuthPage } from "./pages/AuthPage";
-import { ExpertsPage } from "./pages/ExpertsPage";
-import { ExpertDetailPage } from "./pages/ExpertDetailPage";
 import { BookingPage } from "./pages/BookingPage";
-import { MyBookingsPage } from "./pages/MyBookingsPage";
-import { OpsPage } from "./pages/OpsPage";
+import { ExpertDetailPage } from "./pages/ExpertDetailPage";
+import { ExpertsPage } from "./pages/ExpertsPage";
 import { FavoritesPage } from "./pages/FavoritesPage";
+import { MyBookingsPage } from "./pages/MyBookingsPage";
+import { ProfileSetupPage } from "./pages/ProfileSetupPage";
 
 const navClassName = ({ isActive }) => (isActive ? "nav-link active" : "nav-link");
 
 function App() {
   const { currentUser, isAuthenticated, logout } = useAuth();
+  const { language, languageOptions, setLanguage, t } = useI18n();
+  const isReady = Boolean(isAuthenticated && currentUser?.profileCompleted);
 
   return (
     <div className="app-shell">
       <header className="topbar">
         <div className="brand-block">
-          <p className="eyebrow">Expert session booking</p>
+          <p className="eyebrow">{t("expertTagline")}</p>
           <NavLink to="/" className="brand-mark">
             ExpertConnect
           </NavLink>
         </div>
+
         <nav className="nav">
-          <NavLink to="/" className={navClassName} end>
-            Experts
-          </NavLink>
-          {isAuthenticated ? (
+          {isReady ? (
             <>
+              <NavLink to="/" className={navClassName} end>
+                {t("experts")}
+              </NavLink>
               <NavLink to="/favorites" className={navClassName}>
-                Saved
+                {t("saved")}
               </NavLink>
               <NavLink to="/my-bookings" className={navClassName}>
-                My Sessions
-              </NavLink>
-              <NavLink to="/ops" className={navClassName}>
-                Admin
+                {t("mySessions")}
               </NavLink>
             </>
+          ) : isAuthenticated ? (
+            <NavLink to="/profile-setup" className={navClassName}>
+              {t("profile")}
+            </NavLink>
           ) : (
             <NavLink to="/auth" className={navClassName}>
-              Login
+              {t("login")}
             </NavLink>
           )}
         </nav>
+
         <div className="topbar-actions">
+          <label className="language-picker">
+            <span>{t("preferredLanguage")}</span>
+            <select value={language} onChange={(event) => setLanguage(event.target.value)}>
+              {languageOptions.map((option) => (
+                <option key={option.code} value={option.code}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
           {isAuthenticated ? (
             <>
               <div className="account-chip">
-                <strong>{currentUser.name}</strong>
+                <strong>{currentUser.name || currentUser.email}</strong>
                 <span>{currentUser.email}</span>
               </div>
               <button type="button" className="secondary-button" onClick={logout}>
-                Logout
+                {t("logout")}
               </button>
             </>
           ) : (
             <NavLink to="/auth" className="primary-link">
-              Sign up
+              {t("signup")}
             </NavLink>
           )}
         </div>
@@ -67,7 +84,22 @@ function App() {
       <main className="page-shell">
         <Routes>
           <Route path="/auth" element={<AuthPage />} />
-          <Route path="/" element={<ExpertsPage />} />
+          <Route
+            path="/profile-setup"
+            element={
+              <ProtectedRoute>
+                <ProfileSetupPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <ExpertsPage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/favorites"
             element={
@@ -76,7 +108,14 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/experts/:expertId" element={<ExpertDetailPage />} />
+          <Route
+            path="/experts/:expertId"
+            element={
+              <ProtectedRoute>
+                <ExpertDetailPage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/experts/:expertId/book"
             element={
@@ -90,14 +129,6 @@ function App() {
             element={
               <ProtectedRoute>
                 <MyBookingsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/ops"
-            element={
-              <ProtectedRoute>
-                <OpsPage />
               </ProtectedRoute>
             }
           />

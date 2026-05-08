@@ -2,16 +2,20 @@ import { useEffect, useState } from "react";
 import { api, getApiError } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { ErrorState } from "../components/ErrorState";
+import { GamificationPanel } from "../components/GamificationPanel";
 import { Loader } from "../components/Loader";
 import { ReviewStars } from "../components/ReviewStars";
 import { SlotGroup } from "../components/SlotGroup";
 import { StatusBadge } from "../components/StatusBadge";
+import { useI18n } from "../i18n/I18nContext";
 import { socket } from "../lib/socket";
+import { buildJourney } from "../utils/gamification";
 
 const initialReviewDraft = { score: 5, comment: "", submitting: false, success: "" };
 
 export function MyBookingsPage() {
   const { currentUser } = useAuth();
+  const { t } = useI18n();
   const [bookings, setBookings] = useState([]);
   const [waitlistEntries, setWaitlistEntries] = useState([]);
   const [reviewDrafts, setReviewDrafts] = useState({});
@@ -170,17 +174,25 @@ export function MyBookingsPage() {
     }
   };
 
+  const journey = buildJourney({
+    profileCompleted: currentUser?.profileCompleted,
+    favoritesCount: 0,
+    recentCount: 0,
+    bookingsCount: bookings.length,
+    waitlistCount: waitlistEntries.length,
+    reviewsCount: bookings.filter((booking) => booking.status === "Completed").length
+  });
+
   return (
     <div className="page-stack">
       <section className="surface-panel">
-        <p className="eyebrow">My sessions</p>
-        <h1>Manage bookings, waitlist, and follow-up</h1>
-        <p className="hero-copy">
-          Signed in as {currentUser?.email}. You can reschedule, cancel, or leave a review after a
-          completed session.
-        </p>
+        <p className="eyebrow">{t("mySessions")}</p>
+        <h1>{t("mySessionsTitle")}</h1>
+        <p className="hero-copy">{t("mySessionsSubtitle")}</p>
         {toast ? <div className="inline-alert success">{toast}</div> : null}
       </section>
+
+      <GamificationPanel journey={journey} />
 
       <div className="tab-row">
         <button
@@ -188,14 +200,14 @@ export function MyBookingsPage() {
           className={activeTab === "bookings" ? "tab-button active" : "tab-button"}
           onClick={() => setActiveTab("bookings")}
         >
-          Bookings
+          {t("bookings")}
         </button>
         <button
           type="button"
           className={activeTab === "waitlist" ? "tab-button active" : "tab-button"}
           onClick={() => setActiveTab("waitlist")}
         >
-          Waitlist
+          {t("waitlist")}
         </button>
       </div>
 
@@ -238,14 +250,14 @@ export function MyBookingsPage() {
                       className="secondary-button"
                       onClick={() => startReschedule(booking)}
                     >
-                      Reschedule
+                      {t("reschedule")}
                     </button>
                     <button
                       type="button"
                       className="secondary-button danger"
                       onClick={() => cancelBooking(booking.id)}
                     >
-                      Cancel booking
+                      {t("cancelBooking")}
                     </button>
                   </div>
                 ) : null}
@@ -360,7 +372,7 @@ export function MyBookingsPage() {
                           disabled={draft.submitting}
                           onClick={() => submitReview(booking)}
                         >
-                          {draft.submitting ? "Submitting..." : "Submit review"}
+                          {draft.submitting ? "Submitting..." : t("submitReview")}
                         </button>
                         {draft.success ? <span className="helper-label">{draft.success}</span> : null}
                       </div>
@@ -394,6 +406,13 @@ export function MyBookingsPage() {
                 <StatusBadge status={entry.status} />
               </div>
               <p className="booking-notes">{entry.notes || "No extra waitlist note added."}</p>
+              {entry.queuePosition ? (
+                <div className="booking-meta">
+                  <span>
+                    {t("queuePosition")}: {entry.queuePosition}
+                  </span>
+                </div>
+              ) : null}
             </article>
           ))}
 

@@ -4,7 +4,7 @@ const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: true,
+      default: "",
       trim: true
     },
     email: {
@@ -19,6 +19,20 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
       trim: true
+    },
+    preferredLanguage: {
+      type: String,
+      default: "en",
+      trim: true
+    },
+    profileCompleted: {
+      type: Boolean,
+      default: false
+    },
+    role: {
+      type: String,
+      enum: ["user", "admin"],
+      default: "user"
     },
     passwordHash: {
       type: String,

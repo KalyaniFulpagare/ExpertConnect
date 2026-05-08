@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { requireAuth } from "../middlewares/requireAuth.js";
+import { requireAdmin, requireAuth } from "../middlewares/requireAuth.js";
 import {
   addExpertReview,
   createExpert,
@@ -13,10 +13,10 @@ import {
 const router = Router();
 
 router.get("/", asyncHandler(getExperts));
-router.post("/", requireAuth, asyncHandler(createExpert));
+router.post("/", requireAuth, requireAdmin, asyncHandler(createExpert));
 router.get("/:id/recommendations", asyncHandler(getRecommendedExperts));
 router.post("/:id/reviews", requireAuth, asyncHandler(addExpertReview));
-router.patch("/:id", requireAuth, asyncHandler(updateExpert));
+router.patch("/:id", requireAuth, requireAdmin, asyncHandler(updateExpert));
 router.get("/:id", asyncHandler(getExpertById));
 
 export default router;

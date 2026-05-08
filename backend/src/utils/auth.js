@@ -69,7 +69,10 @@ export const verifyAuthToken = (token) => {
 
 export const sanitizeUser = (user) => ({
   id: String(user._id),
-  name: user.name,
+  name: user.name || "",
   email: user.email,
-  phone: user.phone || ""
+  phone: user.phone || "",
+  preferredLanguage: user.preferredLanguage || "en",
+  role: user.role || "user",
+  profileCompleted: Boolean(user.profileCompleted || (user.name?.trim() && user.phone?.trim()))
 });
