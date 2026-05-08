@@ -16,13 +16,12 @@ const bootstrap = async () => {
     await seedExpertsIfEmpty();
   }
 
-  const httpServer = http.createServer();
+  const app = createApp();
+  const httpServer = http.createServer(app);
   const io = new Server(httpServer, {
     cors: createCorsOptions()
   });
-  const app = createApp(io);
-
-  httpServer.on("request", app);
+  app.set("io", io);
   registerSocketHandlers(io);
 
   httpServer.listen(port, () => {

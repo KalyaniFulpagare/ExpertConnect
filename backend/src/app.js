@@ -15,7 +15,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const frontendDistPath = path.resolve(__dirname, "../../frontend/dist");
 
-export const createApp = (io) => {
+export const createApp = () => {
   const app = express();
 
   app.use(cors(createCorsOptions()));
@@ -24,7 +24,7 @@ export const createApp = (io) => {
   app.use(morgan("dev"));
 
   app.use((req, res, next) => {
-    req.io = io;
+    req.io = req.app.get("io");
     next();
   });
 
@@ -42,7 +42,8 @@ export const createApp = (io) => {
       if (
         req.path.startsWith("/experts") ||
         req.path.startsWith("/bookings") ||
-        req.path.startsWith("/health")
+        req.path.startsWith("/health") ||
+        req.path.startsWith("/socket.io")
       ) {
         next();
         return;
