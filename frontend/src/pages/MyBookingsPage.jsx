@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import { api, getApiError } from "../api/client";
+import { useAuth } from "../auth/AuthContext";
 import { ErrorState } from "../components/ErrorState";
 import { Loader } from "../components/Loader";
 import { ReviewStars } from "../components/ReviewStars";
@@ -11,55 +11,45 @@ import { socket } from "../lib/socket";
 const initialReviewDraft = { score: 5, comment: "", submitting: false, success: "" };
 
 export function MyBookingsPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [email, setEmail] = useState(searchParams.get("email") || "");
-  const [activeEmail, setActiveEmail] = useState(searchParams.get("email") || "");
+  const { currentUser } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [waitlistEntries, setWaitlistEntries] = useState([]);
   const [reviewDrafts, setReviewDrafts] = useState({});
   const [rescheduleState, setRescheduleState] = useState({});
   const [activeTab, setActiveTab] = useState("bookings");
-  const [loading, setLoading] = useState(Boolean(searchParams.get("email")));
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
 
-  const fetchWorkspaceData = async (targetEmail) => {
-    if (!targetEmail) {
-      setBookings([]);
-      setWaitlistEntries([]);
-      return;
-    }
-
+  const fetchSessionData = async () => {
     try {
       setLoading(true);
       setError("");
       const [bookingsResponse, waitlistResponse] = await Promise.all([
-        api.get("/bookings", { params: { email: targetEmail } }),
-        api.get("/bookings/waitlist", { params: { email: targetEmail } })
+        api.get("/bookings"),
+        api.get("/bookings/waitlist")
       ]);
       setBookings(bookingsResponse.data.data);
       setWaitlistEntries(waitlistResponse.data.data);
-      setActiveEmail(targetEmail);
     } catch (requestError) {
-      setError(getApiError(requestError, "We could not load your workspace for this email."));
+      setError(getApiError(requestError, "We could not load your sessions right now."));
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    const initialEmail = searchParams.get("email") || "";
-    if (initialEmail) {
-      fetchWorkspaceData(initialEmail);
+    if (currentUser?.email) {
+      fetchSessionData();
     }
-  }, []);
+  }, [currentUser?.email]);
 
   useEffect(() => {
-    if (!activeEmail) {
+    if (!currentUser?.email) {
       return undefined;
     }
 
-    const roomEmail = activeEmail.trim().toLowerCase();
+    const roomEmail = currentUser.email.trim().toLowerCase();
     socket.emit("join-bookings", roomEmail);
 
     const handleBookingCreated = ({ booking }) => {
@@ -89,19 +79,12 @@ export function MyBookingsPage() {
       socket.off("booking:status-updated", handleStatusUpdated);
       socket.off("waitlist:slot-opened", handleWaitlistOpened);
     };
-  }, [activeEmail]);
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    const targetEmail = email.trim().toLowerCase();
-    setSearchParams(targetEmail ? { email: targetEmail } : {});
-    await fetchWorkspaceData(targetEmail);
-  };
+  }, [currentUser?.email]);
 
   const cancelBooking = async (bookingId) => {
     try {
       await api.patch(`/bookings/${bookingId}/cancel`, { reason: "Cancelled by user" });
-      await fetchWorkspaceData(activeEmail);
+      await fetchSessionData();
     } catch (requestError) {
       setError(getApiError(requestError, "Cancellation failed."));
     }
@@ -147,7 +130,7 @@ export function MyBookingsPage() {
         delete next[bookingId];
         return next;
       });
-      await fetchWorkspaceData(activeEmail);
+      await fetchSessionData();
     } catch (requestError) {
       setError(getApiError(requestError, "Reschedule failed."));
     }
@@ -189,20 +172,13 @@ export function MyBookingsPage() {
 
   return (
     <div className="page-stack">
-      <section className="atlas-panel">
-        <p className="eyebrow">Workspace</p>
-        <h1>Manage bookings, waitlist, and session follow-up</h1>
-        <form className="email-form" onSubmit={handleSubmit}>
-          <input
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="Enter the email used while booking"
-          />
-          <button type="submit" className="primary-button">
-            Load workspace
-          </button>
-        </form>
+      <section className="surface-panel">
+        <p className="eyebrow">My sessions</p>
+        <h1>Manage bookings, waitlist, and follow-up</h1>
+        <p className="hero-copy">
+          Signed in as {currentUser?.email}. You can reschedule, cancel, or leave a review after a
+          completed session.
+        </p>
         {toast ? <div className="inline-alert success">{toast}</div> : null}
       </section>
 
@@ -223,8 +199,8 @@ export function MyBookingsPage() {
         </button>
       </div>
 
-      {loading ? <Loader label="Loading workspace..." /> : null}
-      {!loading && error ? <ErrorState message={error} onAction={() => fetchWorkspaceData(activeEmail || email)} /> : null}
+      {loading ? <Loader label="Loading your sessions..." /> : null}
+      {!loading && error ? <ErrorState message={error} onAction={fetchSessionData} /> : null}
 
       {!loading && !error && activeTab === "bookings" ? (
         <section className="bookings-list">
@@ -233,7 +209,7 @@ export function MyBookingsPage() {
             const reschedule = rescheduleState[booking.id];
 
             return (
-              <article key={booking.id} className="booking-card atlas-booking-card">
+              <article key={booking.id} className="booking-card session-booking-card">
                 <div className="booking-card-top">
                   <div>
                     <h2>{booking.expertName}</h2>
@@ -278,7 +254,7 @@ export function MyBookingsPage() {
                   <div className="subpanel">
                     <div className="section-header">
                       <div>
-                        <p className="eyebrow">Reschedule flow</p>
+                        <p className="eyebrow">Reschedule</p>
                         <h3>Choose a new open slot</h3>
                       </div>
                     </div>
@@ -398,7 +374,7 @@ export function MyBookingsPage() {
           {!bookings.length ? (
             <div className="state-card">
               <h3>No bookings yet.</h3>
-              <p>Search using the same email you used when booking.</p>
+              <p>Book a session to see it here.</p>
             </div>
           ) : null}
         </section>
@@ -424,7 +400,7 @@ export function MyBookingsPage() {
           {!waitlistEntries.length ? (
             <div className="state-card">
               <h3>No waitlist entries yet.</h3>
-              <p>Join a booked slot waitlist from the booking page to get notified when it opens.</p>
+              <p>Join a waitlist from the booking page if a time slot is already taken.</p>
             </div>
           ) : null}
         </section>

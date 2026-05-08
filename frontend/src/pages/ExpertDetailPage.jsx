@@ -92,7 +92,7 @@ export function ExpertDetailPage() {
   };
 
   if (loading) {
-    return <Loader label="Loading expert command center..." />;
+    return <Loader label="Loading expert details..." />;
   }
 
   if (error) {
@@ -101,7 +101,7 @@ export function ExpertDetailPage() {
 
   return (
     <div className="page-stack">
-      <section className="atlas-panel detail-hero-panel">
+      <section className="surface-panel detail-hero-panel">
         <div className="detail-copy">
           <p className="category-chip">{expert.category}</p>
           <h1>{expert.name}</h1>
@@ -122,7 +122,7 @@ export function ExpertDetailPage() {
           </div>
           <div className="detail-action-row">
             <Link className="primary-link" to={`/experts/${expert._id}/book`}>
-              Open booking flow
+              Book a session
             </Link>
             <button
               type="button"
@@ -134,9 +134,9 @@ export function ExpertDetailPage() {
           </div>
         </div>
 
-        <aside className="atlas-side-panel">
+        <aside className="detail-side-panel">
           <div className="metric-card tall">
-            <span>Atlas health</span>
+            <span>Rating</span>
             <strong>{expert.rating.toFixed(1)} / 5</strong>
             <p>{expert.reviewCount} verified reviews</p>
           </div>
@@ -152,10 +152,10 @@ export function ExpertDetailPage() {
         </aside>
       </section>
 
-      <section className="atlas-panel">
+      <section className="surface-panel">
         <div className="section-header">
           <div>
-            <p className="eyebrow">Availability fabric</p>
+            <p className="eyebrow">Availability</p>
             <h2>Live slots by date</h2>
           </div>
           <span className="helper-label">Booked slots can be waitlisted from the booking page.</span>
@@ -163,8 +163,8 @@ export function ExpertDetailPage() {
         <SlotGroup expertId={expert._id} availability={expert.availability} />
       </section>
 
-      <section className="atlas-split-grid">
-        <div className="atlas-panel">
+      <section className="split-grid">
+        <div className="surface-panel">
           <div className="section-header">
             <div>
               <p className="eyebrow">Reviews</p>
@@ -184,13 +184,13 @@ export function ExpertDetailPage() {
               ))
             ) : (
               <div className="state-card compact-state">
-                <p>No reviews yet. Completed sessions can submit one from Workspace.</p>
+                <p>No reviews yet. Completed sessions can submit one from My Sessions.</p>
               </div>
             )}
           </div>
         </div>
 
-        <div className="atlas-panel">
+        <div className="surface-panel">
           <div className="section-header">
             <div>
               <p className="eyebrow">Recommended experts</p>

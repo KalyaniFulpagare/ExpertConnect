@@ -1,17 +1,16 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { api, getApiError } from "../api/client";
+import { useAuth } from "../auth/AuthContext";
 import { ErrorState } from "../components/ErrorState";
 import { Loader } from "../components/Loader";
 import { SlotGroup } from "../components/SlotGroup";
 import { socket } from "../lib/socket";
-import { loadBookingProfile, saveBookingProfile } from "../utils/localState";
 
-const baseProfile = loadBookingProfile();
 const initialForm = {
-  name: baseProfile.name,
-  email: baseProfile.email,
-  phone: baseProfile.phone,
+  name: "",
+  email: "",
+  phone: "",
   notes: ""
 };
 
@@ -42,6 +41,7 @@ export function BookingPage() {
   const { expertId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { currentUser, updateProfile } = useAuth();
   const [expert, setExpert] = useState(null);
   const [form, setForm] = useState(initialForm);
   const [selectedSlot, setSelectedSlot] = useState({
@@ -53,7 +53,6 @@ export function BookingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [lastBookedEmail, setLastBookedEmail] = useState(searchParams.get("email") || baseProfile.email || "");
 
   const fetchExpert = async () => {
     try {
@@ -71,6 +70,19 @@ export function BookingPage() {
   useEffect(() => {
     fetchExpert();
   }, [expertId]);
+
+  useEffect(() => {
+    if (!currentUser) {
+      return;
+    }
+
+    setForm((current) => ({
+      ...current,
+      name: currentUser.name || "",
+      email: currentUser.email || "",
+      phone: currentUser.phone || ""
+    }));
+  }, [currentUser]);
 
   useEffect(() => {
     socket.emit("join-expert", expertId);
@@ -101,7 +113,7 @@ export function BookingPage() {
       return "Please enter a valid name.";
     }
 
-    if (!emailPattern.test(form.email.trim())) {
+    if (!emailPattern.test((currentUser?.email || form.email).trim())) {
       return "Please enter a valid email.";
     }
 
@@ -110,14 +122,6 @@ export function BookingPage() {
     }
 
     return "";
-  };
-
-  const persistProfile = () => {
-    saveBookingProfile({
-      name: form.name.trim(),
-      email: form.email.trim().toLowerCase(),
-      phone: form.phone.trim()
-    });
   };
 
   const handleSubmit = async (event) => {
@@ -139,17 +143,22 @@ export function BookingPage() {
       setSubmitting(true);
       setError("");
 
-      await api.post("/bookings", {
-        expertId,
-        ...form,
-        date: selectedSlot.date,
-        timeSlot: selectedSlot.timeSlot
+      await updateProfile({
+        name: form.name.trim(),
+        phone: form.phone.trim()
       });
 
-      persistProfile();
-      setLastBookedEmail(form.email.trim().toLowerCase());
-      setSuccess("Your session is booked. Workspace now tracks reschedules, cancellations, and reviews.");
-      setForm((current) => ({ ...initialForm, email: current.email, name: current.name, phone: current.phone }));
+      await api.post("/bookings", {
+        expertId,
+        name: form.name.trim(),
+        phone: form.phone.trim(),
+        date: selectedSlot.date,
+        timeSlot: selectedSlot.timeSlot,
+        notes: form.notes.trim()
+      });
+
+      setSuccess("Your session is booked. You can track updates from My Sessions.");
+      setForm((current) => ({ ...current, notes: "" }));
       setSelectedSlot({ date: "", timeSlot: "" });
       setWaitlistSlot(null);
       await fetchExpert();
@@ -176,16 +185,19 @@ export function BookingPage() {
     try {
       setSubmitting(true);
       setError("");
-      await api.post("/bookings/waitlist", {
-        expertId,
-        name: form.name,
-        email: form.email,
-        date: waitlistSlot.date,
-        timeSlot: waitlistSlot.timeSlot,
-        notes: form.notes
+      await updateProfile({
+        name: form.name.trim(),
+        phone: form.phone.trim()
       });
 
-      persistProfile();
+      await api.post("/bookings/waitlist", {
+        expertId,
+        name: form.name.trim(),
+        date: waitlistSlot.date,
+        timeSlot: waitlistSlot.timeSlot,
+        notes: form.notes.trim()
+      });
+
       setSuccess(`You are on the waitlist for ${waitlistSlot.date} at ${waitlistSlot.timeSlot}.`);
       setWaitlistSlot(null);
     } catch (requestError) {
@@ -196,7 +208,7 @@ export function BookingPage() {
   };
 
   if (loading) {
-    return <Loader label="Preparing booking workspace..." />;
+    return <Loader label="Preparing your booking..." />;
   }
 
   if (error && !expert) {
@@ -205,12 +217,12 @@ export function BookingPage() {
 
   return (
     <div className="page-stack booking-layout">
-      <section className="atlas-panel">
-        <p className="eyebrow">Booking workspace</p>
+      <section className="surface-panel">
+        <p className="eyebrow">Book a session</p>
         <h1>Reserve time with {expert.name}</h1>
         <p className="hero-copy">
-          Atlas-style workflow: choose an open slot or join the waitlist for a booked one without
-          losing your profile details.
+          Pick an open slot or join the waitlist for a booked one. Your account details stay ready
+          for future bookings.
         </p>
 
         <div className="booking-context-grid">
@@ -235,9 +247,9 @@ export function BookingPage() {
             <button
               type="button"
               className="text-button"
-              onClick={() => navigate(`/my-bookings?email=${encodeURIComponent(lastBookedEmail)}`)}
+              onClick={() => navigate("/my-bookings")}
             >
-              Open workspace
+              Open my sessions
             </button>
           </div>
         ) : null}
@@ -257,9 +269,8 @@ export function BookingPage() {
             <span>Email</span>
             <input
               type="email"
-              value={form.email}
-              onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
-              placeholder="you@example.com"
+              value={currentUser?.email || form.email}
+              disabled
             />
           </label>
 
@@ -328,10 +339,10 @@ export function BookingPage() {
         </form>
       </section>
 
-      <section className="atlas-panel">
+      <section className="surface-panel">
         <div className="section-header">
           <div>
-            <p className="eyebrow">Live slot fabric</p>
+            <p className="eyebrow">Available time slots</p>
             <h2>Book open slots or waitlist booked ones</h2>
           </div>
         </div>

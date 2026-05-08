@@ -245,14 +245,17 @@ export const updateExpert = async (req, res) => {
 };
 
 export const addExpertReview = async (req, res) => {
-  const { name, email, score, comment } = req.body;
+  const name = String(req.body.name || req.user.name || "").trim();
+  const email = String(req.user.email || "").trim().toLowerCase();
+  const score = req.body.score;
+  const comment = String(req.body.comment || "").trim();
   const errors = [];
 
-  if (!name || String(name).trim().length < 2) {
+  if (!name || name.length < 2) {
     errors.push("Reviewer name must be at least 2 characters long.");
   }
 
-  if (!emailPattern.test(String(email || "").trim())) {
+  if (!emailPattern.test(email)) {
     errors.push("A valid reviewer email is required.");
   }
 
@@ -260,7 +263,7 @@ export const addExpertReview = async (req, res) => {
     errors.push("Review score must be between 1 and 5.");
   }
 
-  if (!comment || String(comment).trim().length < 10) {
+  if (!comment || comment.length < 10) {
     errors.push("Review comment must be at least 10 characters long.");
   }
 
@@ -275,10 +278,10 @@ export const addExpertReview = async (req, res) => {
   }
 
   expert.reviews.unshift({
-    name: String(name).trim(),
-    email: String(email).trim().toLowerCase(),
+    name,
+    email,
     score: Number(score),
-    comment: String(comment).trim()
+    comment
   });
   expert.rating = calculateRating(expert.reviews, expert.rating);
   await expert.save();

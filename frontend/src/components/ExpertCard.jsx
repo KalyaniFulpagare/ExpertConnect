@@ -39,7 +39,7 @@ export function ExpertCard({ expert, isFavorite, onToggleFavorite }) {
           <span>{expert.nextAvailable}</span>
         </div>
         <Link className="primary-link" to={`/experts/${expert._id}`}>
-          View command center
+          View profile
         </Link>
       </div>
     </article>

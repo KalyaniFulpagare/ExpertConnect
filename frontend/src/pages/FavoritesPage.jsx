@@ -44,13 +44,13 @@ export function FavoritesPage() {
 
   return (
     <div className="page-stack">
-      <section className="atlas-panel atlas-header-panel">
+      <section className="surface-panel header-panel">
         <div>
           <p className="eyebrow">Saved experts</p>
           <h1>Your short list</h1>
           <p className="hero-copy">
-            Keep the strongest experts close, compare availability, and jump back into booking
-            without repeating the search flow.
+            Keep your best options in one place, compare them quickly, and jump into booking when
+            you are ready.
           </p>
         </div>
       </section>

@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { requireAuth } from "../middlewares/requireAuth.js";
 import {
   cancelBooking,
   createBooking,
@@ -14,14 +15,14 @@ import {
 
 const router = Router();
 
-router.get("/", asyncHandler(getBookingsByEmail));
-router.get("/manage/all", asyncHandler(getAllBookings));
+router.get("/", requireAuth, asyncHandler(getBookingsByEmail));
+router.get("/manage/all", requireAuth, asyncHandler(getAllBookings));
 router.get("/overview/stats", asyncHandler(getBookingOverview));
-router.get("/waitlist", asyncHandler(getWaitlistByEmail));
-router.post("/", asyncHandler(createBooking));
-router.post("/waitlist", asyncHandler(joinWaitlist));
-router.patch("/:id/status", asyncHandler(updateBookingStatus));
-router.patch("/:id/cancel", asyncHandler(cancelBooking));
-router.patch("/:id/reschedule", asyncHandler(rescheduleBooking));
+router.get("/waitlist", requireAuth, asyncHandler(getWaitlistByEmail));
+router.post("/", requireAuth, asyncHandler(createBooking));
+router.post("/waitlist", requireAuth, asyncHandler(joinWaitlist));
+router.patch("/:id/status", requireAuth, asyncHandler(updateBookingStatus));
+router.patch("/:id/cancel", requireAuth, asyncHandler(cancelBooking));
+router.patch("/:id/reschedule", requireAuth, asyncHandler(rescheduleBooking));
 
 export default router;

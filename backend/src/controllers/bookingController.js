@@ -41,6 +41,12 @@ const normalizeWaitlistEntry = (entry) => ({
   createdAt: entry.createdAt
 });
 
+const ensureBookingOwner = (booking, user) => {
+  if (booking.email !== user.email) {
+    throw new ApiError(StatusCodes.FORBIDDEN, "You can only manage your own bookings.");
+  }
+};
+
 const ensureExpertHasSlot = (expert, date, timeSlot) => {
   const daySchedule = expert.availability.find((entry) => entry.date === date);
 
@@ -112,8 +118,22 @@ const validateBookingPayload = ({ expertId, name, email, phone, date, timeSlot, 
 };
 
 export const createBooking = async (req, res) => {
-  const { expertId, name, email, phone, date, timeSlot, notes = "" } = req.body;
-  const validationErrors = validateBookingPayload(req.body);
+  const name = String(req.body.name || req.user.name || "").trim();
+  const email = String(req.user.email || "").trim().toLowerCase();
+  const phone = String(req.body.phone || req.user.phone || "").trim();
+  const date = String(req.body.date || "").trim();
+  const timeSlot = String(req.body.timeSlot || "").trim();
+  const notes = String(req.body.notes || "").trim();
+  const expertId = req.body.expertId;
+  const validationErrors = validateBookingPayload({
+    expertId,
+    name,
+    email,
+    phone,
+    date,
+    timeSlot,
+    notes
+  });
 
   if (validationErrors.length) {
     throw new ApiError(StatusCodes.BAD_REQUEST, "Validation failed.", validationErrors);
@@ -129,20 +149,26 @@ export const createBooking = async (req, res) => {
 
   const booking = await Booking.create({
     expert: expertId,
-    name: String(name).trim(),
-    email: String(email).trim().toLowerCase(),
-    phone: String(phone).trim(),
-    date: String(date).trim(),
-    timeSlot: String(timeSlot).trim(),
-    notes: String(notes).trim()
+    name,
+    email,
+    phone,
+    date,
+    timeSlot,
+    notes
   });
+
+  if (req.user.name !== name || req.user.phone !== phone) {
+    req.user.name = name;
+    req.user.phone = phone;
+    await req.user.save();
+  }
 
   await WaitlistEntry.updateMany(
     {
       expert: expertId,
       date,
       timeSlot,
-      email: String(email).trim().toLowerCase()
+      email
     },
     {
       status: "Converted"
@@ -157,7 +183,7 @@ export const createBooking = async (req, res) => {
     timeSlot
   });
 
-  req.io.to(`bookings:${String(email).trim().toLowerCase()}`).emit("booking:created", {
+  req.io.to(`bookings:${email}`).emit("booking:created", {
     booking: normalizeBooking(populatedBooking)
   });
 
@@ -168,11 +194,7 @@ export const createBooking = async (req, res) => {
 };
 
 export const getBookingsByEmail = async (req, res) => {
-  const email = String(req.query.email || "").trim().toLowerCase();
-
-  if (!emailPattern.test(email)) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, "A valid email query parameter is required.");
-  }
+  const email = String(req.user.email || "").trim().toLowerCase();
 
   const bookings = await Booking.find({ email })
     .populate("expert", "name category")
@@ -287,6 +309,8 @@ export const cancelBooking = async (req, res) => {
     throw new ApiError(StatusCodes.NOT_FOUND, "Booking not found.");
   }
 
+  ensureBookingOwner(booking, req.user);
+
   booking.status = "Cancelled";
   booking.cancellationReason = reason;
   await booking.save();
@@ -323,6 +347,8 @@ export const rescheduleBooking = async (req, res) => {
   if (!booking) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Booking not found.");
   }
+
+  ensureBookingOwner(booking, req.user);
 
   ensureExpertHasSlot(booking.expert, String(date).trim(), String(timeSlot).trim());
 
@@ -361,7 +387,12 @@ export const rescheduleBooking = async (req, res) => {
 };
 
 export const joinWaitlist = async (req, res) => {
-  const { expertId, name, email, date, timeSlot, notes = "" } = req.body;
+  const expertId = req.body.expertId;
+  const name = String(req.body.name || req.user.name || "").trim();
+  const email = String(req.user.email || "").trim().toLowerCase();
+  const date = String(req.body.date || "").trim();
+  const timeSlot = String(req.body.timeSlot || "").trim();
+  const notes = String(req.body.notes || "").trim();
   const errors = [];
 
   if (!expertId || !mongoose.Types.ObjectId.isValid(expertId)) {
@@ -372,15 +403,15 @@ export const joinWaitlist = async (req, res) => {
     errors.push("Name must be at least 2 characters long.");
   }
 
-  if (!emailPattern.test(String(email || "").trim())) {
+  if (!emailPattern.test(email)) {
     errors.push("A valid email address is required.");
   }
 
-  if (!datePattern.test(String(date || "").trim())) {
+  if (!datePattern.test(date)) {
     errors.push("Date must be in YYYY-MM-DD format.");
   }
 
-  if (!timeSlot || String(timeSlot).trim().length < 3) {
+  if (!timeSlot || timeSlot.length < 3) {
     errors.push("A valid time slot is required.");
   }
 
@@ -394,16 +425,21 @@ export const joinWaitlist = async (req, res) => {
     throw new ApiError(StatusCodes.NOT_FOUND, "Expert not found.");
   }
 
-  ensureExpertHasSlot(expert, String(date).trim(), String(timeSlot).trim());
+  ensureExpertHasSlot(expert, date, timeSlot);
 
   const entry = await WaitlistEntry.create({
     expert: expertId,
-    name: String(name).trim(),
-    email: String(email).trim().toLowerCase(),
-    date: String(date).trim(),
-    timeSlot: String(timeSlot).trim(),
-    notes: String(notes).trim()
+    name,
+    email,
+    date,
+    timeSlot,
+    notes
   });
+
+  if (req.user.name !== name) {
+    req.user.name = name;
+    await req.user.save();
+  }
 
   const populatedEntry = await WaitlistEntry.findById(entry._id).populate("expert", "name");
 
@@ -414,11 +450,7 @@ export const joinWaitlist = async (req, res) => {
 };
 
 export const getWaitlistByEmail = async (req, res) => {
-  const email = String(req.query.email || "").trim().toLowerCase();
-
-  if (!emailPattern.test(email)) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, "A valid email query parameter is required.");
-  }
+  const email = String(req.user.email || "").trim().toLowerCase();
 
   const entries = await WaitlistEntry.find({ email })
     .populate("expert", "name")

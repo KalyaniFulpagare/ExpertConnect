@@ -1,4 +1,7 @@
 import { NavLink, Route, Routes } from "react-router-dom";
+import { useAuth } from "./auth/AuthContext";
+import { ProtectedRoute } from "./components/ProtectedRoute";
+import { AuthPage } from "./pages/AuthPage";
 import { ExpertsPage } from "./pages/ExpertsPage";
 import { ExpertDetailPage } from "./pages/ExpertDetailPage";
 import { BookingPage } from "./pages/BookingPage";
@@ -9,39 +12,95 @@ import { FavoritesPage } from "./pages/FavoritesPage";
 const navClassName = ({ isActive }) => (isActive ? "nav-link active" : "nav-link");
 
 function App() {
+  const { currentUser, isAuthenticated, logout } = useAuth();
+
   return (
     <div className="app-shell">
       <header className="topbar">
         <div className="brand-block">
-          <p className="eyebrow">Atlas-inspired expert cloud</p>
+          <p className="eyebrow">Expert session booking</p>
           <NavLink to="/" className="brand-mark">
-            ExpertConnect Atlas
+            ExpertConnect
           </NavLink>
         </div>
         <nav className="nav">
           <NavLink to="/" className={navClassName} end>
-            Directory
+            Experts
           </NavLink>
-          <NavLink to="/favorites" className={navClassName}>
-            Favorites
-          </NavLink>
-          <NavLink to="/my-bookings" className={navClassName}>
-            Workspace
-          </NavLink>
-          <NavLink to="/ops" className={navClassName}>
-            Control Center
-          </NavLink>
+          {isAuthenticated ? (
+            <>
+              <NavLink to="/favorites" className={navClassName}>
+                Saved
+              </NavLink>
+              <NavLink to="/my-bookings" className={navClassName}>
+                My Sessions
+              </NavLink>
+              <NavLink to="/ops" className={navClassName}>
+                Admin
+              </NavLink>
+            </>
+          ) : (
+            <NavLink to="/auth" className={navClassName}>
+              Login
+            </NavLink>
+          )}
         </nav>
+        <div className="topbar-actions">
+          {isAuthenticated ? (
+            <>
+              <div className="account-chip">
+                <strong>{currentUser.name}</strong>
+                <span>{currentUser.email}</span>
+              </div>
+              <button type="button" className="secondary-button" onClick={logout}>
+                Logout
+              </button>
+            </>
+          ) : (
+            <NavLink to="/auth" className="primary-link">
+              Sign up
+            </NavLink>
+          )}
+        </div>
       </header>
 
       <main className="page-shell">
         <Routes>
+          <Route path="/auth" element={<AuthPage />} />
           <Route path="/" element={<ExpertsPage />} />
-          <Route path="/favorites" element={<FavoritesPage />} />
+          <Route
+            path="/favorites"
+            element={
+              <ProtectedRoute>
+                <FavoritesPage />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/experts/:expertId" element={<ExpertDetailPage />} />
-          <Route path="/experts/:expertId/book" element={<BookingPage />} />
-          <Route path="/my-bookings" element={<MyBookingsPage />} />
-          <Route path="/ops" element={<OpsPage />} />
+          <Route
+            path="/experts/:expertId/book"
+            element={
+              <ProtectedRoute>
+                <BookingPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-bookings"
+            element={
+              <ProtectedRoute>
+                <MyBookingsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/ops"
+            element={
+              <ProtectedRoute>
+                <OpsPage />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </main>
     </div>

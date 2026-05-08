@@ -6,6 +6,7 @@ import express from "express";
 import helmet from "helmet";
 import morgan from "morgan";
 import { createCorsOptions } from "./config/cors.js";
+import authRoutes from "./routes/authRoutes.js";
 import expertRoutes from "./routes/expertRoutes.js";
 import bookingRoutes from "./routes/bookingRoutes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
@@ -32,6 +33,7 @@ export const createApp = () => {
     res.json({ message: "Expert session booking API is healthy." });
   });
 
+  app.use("/auth", authRoutes);
   app.use("/experts", expertRoutes);
   app.use("/bookings", bookingRoutes);
 
@@ -42,6 +44,7 @@ export const createApp = () => {
       if (
         req.path.startsWith("/experts") ||
         req.path.startsWith("/bookings") ||
+        req.path.startsWith("/auth") ||
         req.path.startsWith("/health") ||
         req.path.startsWith("/socket.io")
       ) {

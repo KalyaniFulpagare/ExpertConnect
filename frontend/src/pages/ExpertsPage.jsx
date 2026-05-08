@@ -77,18 +77,18 @@ export function ExpertsPage() {
 
   return (
     <div className="page-stack">
-      <section className="atlas-panel atlas-hero">
-        <div className="atlas-hero-copy">
-          <p className="eyebrow">Expert orchestration layer</p>
-          <h1>Run expert sessions with Atlas-style visibility and zero booking collisions.</h1>
+      <section className="surface-panel hero-panel">
+        <div className="hero-panel-copy">
+          <p className="eyebrow">Expert marketplace</p>
+          <h1>Book the right expert without the usual back-and-forth.</h1>
           <p className="hero-copy">
-            Search across specialties, monitor live slot health, build a saved expert shortlist, and
-            use waitlist and reschedule flows that feel like a real product instead of a static form.
+            Browse specialties, compare reviews, save strong options, and book open slots in a few
+            steps. If a slot is taken, you can still join the waitlist and track everything later.
           </p>
-          <div className="atlas-inline-pills">
-            <span>Real-time slot sync</span>
-            <span>Waitlist recovery</span>
-            <span>Review-backed discovery</span>
+          <div className="highlight-pills">
+            <span>Live availability</span>
+            <span>Waitlist support</span>
+            <span>Verified reviews</span>
           </div>
         </div>
 
@@ -112,10 +112,10 @@ export function ExpertsPage() {
         </div>
       </section>
 
-      <section className="atlas-panel filter-panel">
+      <section className="surface-panel filter-panel">
         <div className="section-header">
           <div>
-            <p className="eyebrow">Filter graph</p>
+            <p className="eyebrow">Browse experts</p>
             <h2>Find the right advisor faster</h2>
           </div>
           <button
@@ -138,7 +138,7 @@ export function ExpertsPage() {
           </button>
         </div>
 
-        <div className="atlas-filter-grid">
+        <div className="filter-grid">
           <label className="field-block">
             <span>Search expert</span>
             <input
@@ -245,11 +245,11 @@ export function ExpertsPage() {
       </section>
 
       {recentExperts.length ? (
-        <section className="atlas-panel recent-panel">
+        <section className="surface-panel recent-panel">
           <div className="section-header">
             <div>
               <p className="eyebrow">Recently viewed</p>
-              <h2>Jump back into your research queue</h2>
+              <h2>Pick up where you left off</h2>
             </div>
           </div>
           <div className="recent-grid">
@@ -263,7 +263,7 @@ export function ExpertsPage() {
         </section>
       ) : null}
 
-      {loading ? <Loader label="Loading expert graph..." /> : null}
+      {loading ? <Loader label="Loading experts..." /> : null}
       {!loading && error ? <ErrorState message={error} onAction={fetchExperts} /> : null}
 
       {!loading && !error ? (
@@ -281,8 +281,8 @@ export function ExpertsPage() {
 
           {experts.length === 0 ? (
             <div className="state-card">
-              <h3>No experts matched this filter graph.</h3>
-              <p>Try widening the budget or removing one of the specialty filters.</p>
+              <h3>No experts matched these filters.</h3>
+              <p>Try widening the budget or clearing one of the filters.</p>
             </div>
           ) : null}
 

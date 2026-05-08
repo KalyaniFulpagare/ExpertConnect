@@ -126,7 +126,7 @@ export function OpsPage() {
   };
 
   if (loading) {
-    return <Loader label="Loading control center..." />;
+    return <Loader label="Loading admin dashboard..." />;
   }
 
   if (error) {
@@ -135,11 +135,11 @@ export function OpsPage() {
 
   return (
     <div className="page-stack">
-      <section className="atlas-panel">
+      <section className="surface-panel">
         <div className="section-header">
           <div>
-            <p className="eyebrow">Control center</p>
-            <h1>Ops dashboard for experts, demand, and booking state</h1>
+            <p className="eyebrow">Admin dashboard</p>
+            <h1>Manage experts, bookings, and demand in one place</h1>
           </div>
           <label className="field-block compact">
             <span>Status filter</span>
@@ -176,8 +176,8 @@ export function OpsPage() {
         </div>
       </section>
 
-      <section className="atlas-split-grid ops-grid">
-        <section className="atlas-panel">
+      <section className="split-grid ops-grid">
+        <section className="surface-panel">
           <div className="section-header">
             <div>
               <p className="eyebrow">Expert admin</p>
@@ -263,10 +263,10 @@ export function OpsPage() {
           </form>
         </section>
 
-        <section className="atlas-panel">
+        <section className="surface-panel">
           <div className="section-header">
             <div>
-              <p className="eyebrow">Live operations</p>
+              <p className="eyebrow">Booking operations</p>
               <h2>Bookings and expert inventory</h2>
             </div>
           </div>
